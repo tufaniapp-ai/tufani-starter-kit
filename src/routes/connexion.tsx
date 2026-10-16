@@ -1,4 +1,4 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
 import { useEffect, useState, type FormEvent } from "react";
 
@@ -20,6 +20,9 @@ export const Route = createFileRoute("/connexion")({
       { name: "robots", content: "noindex" },
     ],
   }),
+  // « suite » : page où revenir après la connexion. Seules les pages internes connues sont acceptées.
+  validateSearch: (search: Record<string, unknown>): { suite?: "/pro" } =>
+    search["suite"] === "/pro" ? { suite: "/pro" } : {},
   component: Connexion,
 });
 
@@ -37,6 +40,8 @@ const ERRORS: Record<string, string> = {
 type Step = "phone" | "code" | "done";
 
 function Connexion() {
+  const { suite } = Route.useSearch();
+  const navigate = useNavigate();
   const [step, setStep] = useState<Step>("phone");
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
@@ -107,6 +112,10 @@ function Connexion() {
         return;
       }
       await supabase.rpc("claim_invitations" as never);
+      if (suite) {
+        await navigate({ to: suite });
+        return;
+      }
       setAccount(phone);
       setStep("done");
     } catch {
@@ -271,6 +280,9 @@ function Connexion() {
               )}
             </p>
             <Button asChild className="h-14 rounded-2xl text-base font-extrabold">
+              <Link to="/pro">Espace compagnie</Link>
+            </Button>
+            <Button asChild variant="outline" className="h-12 rounded-2xl font-bold">
               <Link to="/">Retour à l'accueil</Link>
             </Button>
             <Button
