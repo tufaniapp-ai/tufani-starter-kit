@@ -12,6 +12,14 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ConnexionRouteImport } from './routes/connexion'
 import { Route as ProRouteImport } from './routes/pro'
+import { Route as ProIndexRouteImport } from './routes/pro.index'
+import { Route as ProAnnulationRouteImport } from './routes/pro.annulation'
+import { Route as ProBusRouteImport } from './routes/pro.bus'
+import { Route as ProEquipeRouteImport } from './routes/pro.equipe'
+import { Route as ProGaresRouteImport } from './routes/pro.gares'
+import { Route as ProHorairesRouteImport } from './routes/pro.horaires'
+import { Route as ProLignesRouteImport } from './routes/pro.lignes'
+import { Route as ProVersementsRouteImport } from './routes/pro.versements'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -28,35 +36,131 @@ const ProRoute = ProRouteImport.update({
   path: '/pro',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProIndexRoute = ProIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ProRoute,
+} as any)
+const ProAnnulationRoute = ProAnnulationRouteImport.update({
+  id: '/annulation',
+  path: '/annulation',
+  getParentRoute: () => ProRoute,
+} as any)
+const ProBusRoute = ProBusRouteImport.update({
+  id: '/bus',
+  path: '/bus',
+  getParentRoute: () => ProRoute,
+} as any)
+const ProEquipeRoute = ProEquipeRouteImport.update({
+  id: '/equipe',
+  path: '/equipe',
+  getParentRoute: () => ProRoute,
+} as any)
+const ProGaresRoute = ProGaresRouteImport.update({
+  id: '/gares',
+  path: '/gares',
+  getParentRoute: () => ProRoute,
+} as any)
+const ProHorairesRoute = ProHorairesRouteImport.update({
+  id: '/horaires',
+  path: '/horaires',
+  getParentRoute: () => ProRoute,
+} as any)
+const ProLignesRoute = ProLignesRouteImport.update({
+  id: '/lignes',
+  path: '/lignes',
+  getParentRoute: () => ProRoute,
+} as any)
+const ProVersementsRoute = ProVersementsRouteImport.update({
+  id: '/versements',
+  path: '/versements',
+  getParentRoute: () => ProRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/connexion': typeof ConnexionRoute
-  '/pro': typeof ProRoute
+  '/pro': typeof ProRouteWithChildren
+  '/pro/annulation': typeof ProAnnulationRoute
+  '/pro/bus': typeof ProBusRoute
+  '/pro/equipe': typeof ProEquipeRoute
+  '/pro/gares': typeof ProGaresRoute
+  '/pro/horaires': typeof ProHorairesRoute
+  '/pro/lignes': typeof ProLignesRoute
+  '/pro/versements': typeof ProVersementsRoute
+  '/pro/': typeof ProIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/connexion': typeof ConnexionRoute
-  '/pro': typeof ProRoute
+  '/pro/annulation': typeof ProAnnulationRoute
+  '/pro/bus': typeof ProBusRoute
+  '/pro/equipe': typeof ProEquipeRoute
+  '/pro/gares': typeof ProGaresRoute
+  '/pro/horaires': typeof ProHorairesRoute
+  '/pro/lignes': typeof ProLignesRoute
+  '/pro/versements': typeof ProVersementsRoute
+  '/pro': typeof ProIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/connexion': typeof ConnexionRoute
-  '/pro': typeof ProRoute
+  '/pro': typeof ProRouteWithChildren
+  '/pro/annulation': typeof ProAnnulationRoute
+  '/pro/bus': typeof ProBusRoute
+  '/pro/equipe': typeof ProEquipeRoute
+  '/pro/gares': typeof ProGaresRoute
+  '/pro/horaires': typeof ProHorairesRoute
+  '/pro/lignes': typeof ProLignesRoute
+  '/pro/versements': typeof ProVersementsRoute
+  '/pro/': typeof ProIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/connexion' | '/pro'
+  fullPaths:
+    | '/'
+    | '/connexion'
+    | '/pro'
+    | '/pro/annulation'
+    | '/pro/bus'
+    | '/pro/equipe'
+    | '/pro/gares'
+    | '/pro/horaires'
+    | '/pro/lignes'
+    | '/pro/versements'
+    | '/pro/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/connexion' | '/pro'
-  id: '__root__' | '/' | '/connexion' | '/pro'
+  to:
+    | '/'
+    | '/connexion'
+    | '/pro/annulation'
+    | '/pro/bus'
+    | '/pro/equipe'
+    | '/pro/gares'
+    | '/pro/horaires'
+    | '/pro/lignes'
+    | '/pro/versements'
+    | '/pro'
+  id:
+    | '__root__'
+    | '/'
+    | '/connexion'
+    | '/pro'
+    | '/pro/annulation'
+    | '/pro/bus'
+    | '/pro/equipe'
+    | '/pro/gares'
+    | '/pro/horaires'
+    | '/pro/lignes'
+    | '/pro/versements'
+    | '/pro/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ConnexionRoute: typeof ConnexionRoute
-  ProRoute: typeof ProRoute
+  ProRoute: typeof ProRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -82,13 +186,93 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pro/': {
+      id: '/pro/'
+      path: '/'
+      fullPath: '/pro/'
+      preLoaderRoute: typeof ProIndexRouteImport
+      parentRoute: typeof ProRoute
+    }
+    '/pro/annulation': {
+      id: '/pro/annulation'
+      path: '/annulation'
+      fullPath: '/pro/annulation'
+      preLoaderRoute: typeof ProAnnulationRouteImport
+      parentRoute: typeof ProRoute
+    }
+    '/pro/bus': {
+      id: '/pro/bus'
+      path: '/bus'
+      fullPath: '/pro/bus'
+      preLoaderRoute: typeof ProBusRouteImport
+      parentRoute: typeof ProRoute
+    }
+    '/pro/equipe': {
+      id: '/pro/equipe'
+      path: '/equipe'
+      fullPath: '/pro/equipe'
+      preLoaderRoute: typeof ProEquipeRouteImport
+      parentRoute: typeof ProRoute
+    }
+    '/pro/gares': {
+      id: '/pro/gares'
+      path: '/gares'
+      fullPath: '/pro/gares'
+      preLoaderRoute: typeof ProGaresRouteImport
+      parentRoute: typeof ProRoute
+    }
+    '/pro/horaires': {
+      id: '/pro/horaires'
+      path: '/horaires'
+      fullPath: '/pro/horaires'
+      preLoaderRoute: typeof ProHorairesRouteImport
+      parentRoute: typeof ProRoute
+    }
+    '/pro/lignes': {
+      id: '/pro/lignes'
+      path: '/lignes'
+      fullPath: '/pro/lignes'
+      preLoaderRoute: typeof ProLignesRouteImport
+      parentRoute: typeof ProRoute
+    }
+    '/pro/versements': {
+      id: '/pro/versements'
+      path: '/versements'
+      fullPath: '/pro/versements'
+      preLoaderRoute: typeof ProVersementsRouteImport
+      parentRoute: typeof ProRoute
+    }
   }
 }
+
+interface ProRouteChildren {
+  ProAnnulationRoute: typeof ProAnnulationRoute
+  ProBusRoute: typeof ProBusRoute
+  ProEquipeRoute: typeof ProEquipeRoute
+  ProGaresRoute: typeof ProGaresRoute
+  ProHorairesRoute: typeof ProHorairesRoute
+  ProLignesRoute: typeof ProLignesRoute
+  ProVersementsRoute: typeof ProVersementsRoute
+  ProIndexRoute: typeof ProIndexRoute
+}
+
+const ProRouteChildren: ProRouteChildren = {
+  ProAnnulationRoute: ProAnnulationRoute,
+  ProBusRoute: ProBusRoute,
+  ProEquipeRoute: ProEquipeRoute,
+  ProGaresRoute: ProGaresRoute,
+  ProHorairesRoute: ProHorairesRoute,
+  ProLignesRoute: ProLignesRoute,
+  ProVersementsRoute: ProVersementsRoute,
+  ProIndexRoute: ProIndexRoute,
+}
+
+const ProRouteWithChildren = ProRoute._addFileChildren(ProRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ConnexionRoute: ConnexionRoute,
-  ProRoute: ProRoute,
+  ProRoute: ProRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -1,50 +1,36 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { Link, Outlet, createFileRoute } from "@tanstack/react-router";
+import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 
+import { Field, Notice, PageTitle, inputClass } from "@/components/pro/ui";
 import { Button } from "@/components/ui/button";
-import { MALI_CITIES } from "@/domain/cities";
 import { formatLocalPhone } from "@/domain/phone";
-import { ROLE_LABELS, can } from "@/domain/roles";
 import { nextSlug, slugify } from "@/domain/slug";
 import { supabase } from "@/integrations/supabase/client";
-import { db, type CompanyStatus, type Membership, type StationRow } from "@/lib/db";
+import { db, type Membership } from "@/lib/db";
+import { ProContext, STEPS, stepDone, type SetupStatus } from "@/lib/pro-context";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/pro")({
   head: () => ({
     meta: [{ title: "Espace compagnie — Tufani Pro" }, { name: "robots", content: "noindex" }],
   }),
-  component: Pro,
+  component: ProLayout,
 });
+
+const COMPANY_KEY = "tufani.pro.compagnie";
 
 type Load =
   | { state: "loading" }
   | { state: "anonymous" }
-  | { state: "error"; message: string }
+  | { state: "error" }
   | { state: "ready"; userPhone: string | null; memberships: Membership[] };
 
-const STATUS: Record<CompanyStatus, { label: string; className: string; help: string }> = {
-  en_attente: {
-    label: "En attente de validation",
-    className: "bg-warning text-warning-foreground",
-    help: "Vous pouvez déjà tout configurer et vendre au guichet. La vente en ligne s'ouvrira après la vérification de vos documents.",
-  },
-  validee: {
-    label: "Compagnie validée",
-    className: "bg-accent text-accent-foreground",
-    help: "Vos départs peuvent être vendus en ligne.",
-  },
-  suspendue: {
-    label: "Compagnie suspendue",
-    className: "bg-destructive text-destructive-foreground",
-    help: "Contactez Tufani pour rétablir votre accès.",
-  },
-};
-
-function Pro() {
+function ProLayout() {
   const [load, setLoad] = useState<Load>({ state: "loading" });
   const [currentId, setCurrentId] = useState<string | null>(null);
+  const [status, setStatus] = useState<SetupStatus | null>(null);
 
-  const refresh = useCallback(async () => {
+  const loadMemberships = useCallback(async () => {
     const { data: auth } = await supabase.auth.getUser();
     if (!auth.user) {
       setLoad({ state: "anonymous" });
@@ -59,86 +45,71 @@ function Pro() {
       .eq("active", true)
       .order("invited_at");
     if (error) {
-      setLoad({ state: "error", message: "Impossible de charger votre espace. Réessayez." });
+      setLoad({ state: "error" });
       return;
     }
     const memberships = (data ?? []) as unknown as Membership[];
+    let saved: string | null = null;
+    try {
+      saved = localStorage.getItem(COMPANY_KEY);
+    } catch {
+      saved = null;
+    }
+    setCurrentId((id) => id ?? memberships.find((m) => m.company_id === saved)?.company_id ?? null);
     setLoad({
       state: "ready",
       userPhone: auth.user.phone ? `+${auth.user.phone}` : null,
       memberships,
     });
-    setCurrentId((id) => id ?? memberships[0]?.company_id ?? null);
   }, []);
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    void loadMemberships();
+  }, [loadMemberships]);
+
+  const membership =
+    load.state === "ready"
+      ? (load.memberships.find((m) => m.company_id === currentId) ?? load.memberships[0])
+      : undefined;
+  const companyId = membership?.company_id;
+
+  const refreshStatus = useCallback(async () => {
+    if (!companyId) return;
+    const { data } = await db.rpc("setup_status", { p_company: companyId });
+    setStatus((data as SetupStatus | null) ?? null);
+  }, [companyId]);
+
+  useEffect(() => {
+    setStatus(null);
+    void refreshStatus();
+  }, [refreshStatus]);
+
+  const switchCompany = useCallback((id: string) => {
+    setCurrentId(id);
+    try {
+      localStorage.setItem(COMPANY_KEY, id);
+    } catch {
+      /* stockage indisponible : le choix vaut pour cette visite */
+    }
+  }, []);
+
+  const context = useMemo(
+    () =>
+      membership && load.state === "ready"
+        ? { membership, memberships: load.memberships, status, refreshStatus, switchCompany }
+        : null,
+    [membership, load, status, refreshStatus, switchCompany],
+  );
 
   async function signOut() {
     await supabase.auth.signOut();
     setLoad({ state: "anonymous" });
   }
 
-  const userPhone = load.state === "ready" ? load.userPhone : null;
-  const current =
-    load.state === "ready"
-      ? (load.memberships.find((m) => m.company_id === currentId) ?? load.memberships[0])
-      : undefined;
-
-  return (
-    <Shell userPhone={userPhone} onSignOut={load.state === "ready" ? signOut : undefined}>
-      {load.state === "loading" && <p className="text-muted-foreground">Chargement…</p>}
-
-      {load.state === "anonymous" && (
-        <div className="flex flex-col gap-4">
-          <h1 className="text-3xl font-extrabold tracking-tight">Espace compagnie</h1>
-          <p className="text-muted-foreground">
-            Connectez-vous avec votre numéro de téléphone pour continuer.
-          </p>
-          <Button asChild className="h-14 w-fit rounded-2xl px-8 text-base font-extrabold">
-            <Link to="/connexion" search={{ suite: "/pro" }}>
-              Se connecter
-            </Link>
-          </Button>
-        </div>
-      )}
-
-      {load.state === "error" && (
-        <p
-          role="alert"
-          className="rounded-xl bg-warning px-4 py-3 font-semibold text-warning-foreground"
-        >
-          {load.message}
-        </p>
-      )}
-
-      {load.state === "ready" && !current && <CreateCompany onCreated={refresh} />}
-
-      {load.state === "ready" && current && (
-        <Dashboard
-          membership={current}
-          others={load.memberships.filter((m) => m.company_id !== current.company_id)}
-          onSwitch={setCurrentId}
-        />
-      )}
-    </Shell>
-  );
-}
-
-function Shell({
-  userPhone,
-  onSignOut,
-  children,
-}: {
-  userPhone: string | null;
-  onSignOut: (() => Promise<void>) | undefined;
-  children: ReactNode;
-}) {
   return (
     <main className="flex min-h-screen flex-col bg-background">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b bg-card px-5 py-4 sm:px-10">
-        <Link to="/" className="flex items-center gap-3 text-foreground no-underline">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b bg-card px-5 py-4 sm:px-8">
+        <Link to="/pro" className="flex items-center gap-3 text-foreground no-underline">
           <span
             aria-hidden="true"
             className="flex size-9 items-center justify-center rounded-xl bg-primary text-lg font-extrabold text-highlight"
@@ -146,13 +117,20 @@ function Shell({
             T
           </span>
           <span className="text-lg font-extrabold">Tufani Pro</span>
+          {membership && (
+            <span className="hidden text-sm text-muted-foreground sm:inline">
+              · {membership.company.name}
+            </span>
+          )}
         </Link>
-        {userPhone && onSignOut && (
+        {load.state === "ready" && (
           <div className="flex items-center gap-4 text-sm">
-            <span className="text-muted-foreground">{formatLocalPhone(userPhone)}</span>
+            {load.userPhone && (
+              <span className="text-muted-foreground">{formatLocalPhone(load.userPhone)}</span>
+            )}
             <button
               type="button"
-              onClick={() => void onSignOut()}
+              onClick={() => void signOut()}
               className="py-2 font-bold text-primary"
             >
               Se déconnecter
@@ -160,10 +138,104 @@ function Shell({
           </div>
         )}
       </header>
-      <section className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-5 py-8 sm:px-10">
-        {children}
-      </section>
+
+      {load.state === "loading" && <Centered>Chargement…</Centered>}
+
+      {load.state === "anonymous" && (
+        <Centered>
+          <PageTitle title="Espace compagnie">
+            Connectez-vous avec votre numéro de téléphone pour continuer.
+          </PageTitle>
+          <Button asChild className="h-14 w-fit rounded-2xl px-8 text-base font-extrabold">
+            <Link to="/connexion" search={{ suite: "/pro" }}>
+              Se connecter
+            </Link>
+          </Button>
+        </Centered>
+      )}
+
+      {load.state === "error" && (
+        <Centered>
+          <Notice>Impossible de charger votre espace. Réessayez dans un instant.</Notice>
+        </Centered>
+      )}
+
+      {load.state === "ready" && !membership && (
+        <Centered>
+          <CreateCompany onCreated={loadMemberships} />
+        </Centered>
+      )}
+
+      {context && (
+        <ProContext.Provider value={context}>
+          <div className="flex flex-1 flex-wrap">
+            <nav
+              aria-label="Étapes de la mise en route"
+              className="flex w-full gap-1 overflow-x-auto border-b px-3 py-2 md:w-60 md:flex-col md:overflow-visible md:border-r md:border-b-0 md:px-4 md:py-6"
+            >
+              <NavItem to="/pro" exact label="Tableau de bord" />
+              {STEPS.map((s, i) => (
+                <NavItem
+                  key={s.key}
+                  to={s.to}
+                  label={s.label}
+                  number={i + 1}
+                  done={stepDone(s.key, status)}
+                />
+              ))}
+            </nav>
+            <section className="flex min-w-0 flex-1 flex-col gap-6 px-5 py-8 sm:px-8 lg:max-w-4xl">
+              <Outlet />
+            </section>
+          </div>
+        </ProContext.Provider>
+      )}
     </main>
+  );
+}
+
+function NavItem({
+  to,
+  label,
+  number,
+  done,
+  exact,
+}: {
+  to: string;
+  label: string;
+  number?: number;
+  done?: boolean;
+  exact?: boolean;
+}) {
+  return (
+    <Link
+      to={to}
+      activeOptions={{ exact: Boolean(exact) }}
+      className="flex min-h-11 shrink-0 items-center gap-3 rounded-xl px-3 text-sm font-semibold whitespace-nowrap text-muted-foreground no-underline"
+      activeProps={{ className: "bg-card text-foreground shadow-sm font-extrabold" }}
+    >
+      {number !== undefined && (
+        <span
+          aria-hidden="true"
+          className={cn(
+            "flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-extrabold",
+            done ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground",
+          )}
+        >
+          {done ? "✓" : number}
+        </span>
+      )}
+      <span>{label}</span>
+      {done && <span className="sr-only">(fait)</span>}
+    </Link>
+  );
+}
+
+function Centered({ children }: { children: ReactNode }) {
+  return (
+    <section className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-6 px-5 py-10">
+      {children}
+    </section>
   );
 }
 
@@ -214,14 +286,10 @@ function CreateCompany({ onCreated }: { onCreated: () => Promise<void> }) {
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <span className="text-sm font-bold text-primary">Étape 1 de la mise en route</span>
-        <h1 className="text-3xl font-extrabold tracking-tight">Créer votre compagnie</h1>
-        <p className="leading-relaxed text-muted-foreground">
-          Vous en deviendrez le gérant. Vous pourrez ensuite ajouter vos gares et inviter votre
-          équipe.
-        </p>
-      </div>
+      <PageTitle step="Mise en route" title="Créer votre compagnie">
+        Vous en deviendrez le gérant. Vous ajouterez ensuite vos gares, lignes, bus et horaires,
+        puis votre équipe.
+      </PageTitle>
       <Field label="Nom affiché aux voyageurs" id="company">
         <input
           id="company"
@@ -229,7 +297,7 @@ function CreateCompany({ onCreated }: { onCreated: () => Promise<void> }) {
           onChange={(e) => setCompanyName(e.target.value)}
           placeholder="Ex. Djoliba Trans"
           maxLength={80}
-          className="h-14 rounded-2xl border-2 border-input bg-card px-4 text-lg font-bold outline-none focus:border-primary"
+          className={cn(inputClass, "h-14 text-lg")}
         />
       </Field>
       <Field label="Votre nom complet" id="fullname">
@@ -240,216 +308,13 @@ function CreateCompany({ onCreated }: { onCreated: () => Promise<void> }) {
           placeholder="Ex. Mamadou Diallo"
           maxLength={80}
           autoComplete="name"
-          className="h-14 rounded-2xl border-2 border-input bg-card px-4 text-lg font-bold outline-none focus:border-primary"
+          className={cn(inputClass, "h-14 text-lg")}
         />
       </Field>
-      {error && (
-        <p
-          role="alert"
-          className="rounded-xl bg-warning px-4 py-3 text-sm font-semibold text-warning-foreground"
-        >
-          {error}
-        </p>
-      )}
+      {error && <Notice>{error}</Notice>}
       <Button type="submit" disabled={busy} className="h-14 rounded-2xl text-base font-extrabold">
         {busy ? "Création…" : "Créer la compagnie"}
       </Button>
     </form>
-  );
-}
-
-function Dashboard({
-  membership,
-  others,
-  onSwitch,
-}: {
-  membership: Membership;
-  others: Membership[];
-  onSwitch: (companyId: string) => void;
-}) {
-  const { company, roles } = membership;
-  const status = STATUS[company.status];
-  const canConfigure = can(roles, "configurer_compagnie");
-
-  return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-3xl font-extrabold tracking-tight">{company.name}</h1>
-          <span className={`rounded-full px-3 py-1 text-xs font-bold ${status.className}`}>
-            {status.label}
-          </span>
-        </div>
-        <p className="text-sm leading-relaxed text-muted-foreground">{status.help}</p>
-        <p className="text-sm">
-          Vous êtes : <strong>{roles.map((r) => ROLE_LABELS[r]).join(", ")}</strong>
-          {membership.all_stations ? " · toutes les gares" : ""}
-        </p>
-        {others.length > 0 && (
-          <div className="flex flex-wrap gap-2 text-sm">
-            <span className="text-muted-foreground">Autres compagnies :</span>
-            {others.map((m) => (
-              <button
-                key={m.company_id}
-                type="button"
-                onClick={() => onSwitch(m.company_id)}
-                className="font-bold text-primary"
-              >
-                {m.company.name}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <Stations companyId={company.id} canConfigure={canConfigure} />
-
-      <section className="flex flex-col gap-2 rounded-2xl bg-card p-5">
-        <h2 className="text-lg font-extrabold">Suite de la mise en route</h2>
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          Lignes et arrêts, bus, horaires et tarifs, règles d'annulation, équipe et versements
-          arrivent dans les prochaines étapes.
-        </p>
-      </section>
-    </div>
-  );
-}
-
-function Stations({ companyId, canConfigure }: { companyId: string; canConfigure: boolean }) {
-  const [stations, setStations] = useState<StationRow[] | null>(null);
-  const [name, setName] = useState("");
-  const [city, setCity] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const loadStations = useCallback(async () => {
-    const { data } = await db
-      .from("stations")
-      .select("id, company_id, name, city, active")
-      .eq("company_id", companyId)
-      .order("city")
-      .order("name");
-    setStations((data ?? []) as StationRow[]);
-  }, [companyId]);
-
-  useEffect(() => {
-    void loadStations();
-  }, [loadStations]);
-
-  async function add(e: FormEvent) {
-    e.preventDefault();
-    setError(null);
-    if (name.trim().length < 2 || city.trim().length < 2) {
-      setError("Indiquez le nom de la gare et sa ville.");
-      return;
-    }
-    setBusy(true);
-    try {
-      const { error: insertError } = await db
-        .from("stations")
-        .insert({ company_id: companyId, name: name.trim(), city: city.trim() });
-      if (insertError) {
-        setError(
-          insertError.code === "23505"
-            ? "Cette gare existe déjà dans cette ville."
-            : "La gare n'a pas pu être ajoutée. Réessayez.",
-        );
-        return;
-      }
-      setName("");
-      setCity("");
-      await loadStations();
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <section className="flex flex-col gap-4 rounded-2xl bg-card p-5">
-      <div className="flex items-baseline justify-between gap-3">
-        <h2 className="text-lg font-extrabold">Vos gares</h2>
-        {stations && (
-          <span className="text-sm text-muted-foreground">{stations.length} gare(s)</span>
-        )}
-      </div>
-
-      {stations === null && <p className="text-sm text-muted-foreground">Chargement…</p>}
-      {stations?.length === 0 && (
-        <p className="text-sm text-muted-foreground">
-          Aucune gare pour l'instant. Ajoutez votre première gare.
-        </p>
-      )}
-      {stations && stations.length > 0 && (
-        <ul className="flex flex-wrap gap-2">
-          {stations.map((s) => (
-            <li
-              key={s.id}
-              className="rounded-full bg-accent px-4 py-2 text-sm font-bold text-accent-foreground"
-            >
-              {s.name} · {s.city}
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {canConfigure && (
-        <form onSubmit={add} className="flex flex-col gap-3 border-t pt-4">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Nom de la gare" id="station-name">
-              <input
-                id="station-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Ex. Sogoniko"
-                maxLength={80}
-                className="h-12 rounded-xl border-2 border-input bg-background px-3 font-semibold outline-none focus:border-primary"
-              />
-            </Field>
-            <Field label="Ville" id="station-city">
-              <input
-                id="station-city"
-                list="mali-cities"
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                placeholder="Ex. Bamako"
-                maxLength={60}
-                className="h-12 rounded-xl border-2 border-input bg-background px-3 font-semibold outline-none focus:border-primary"
-              />
-              <datalist id="mali-cities">
-                {MALI_CITIES.map((c) => (
-                  <option key={c} value={c} />
-                ))}
-              </datalist>
-            </Field>
-          </div>
-          {error && (
-            <p
-              role="alert"
-              className="rounded-xl bg-warning px-4 py-3 text-sm font-semibold text-warning-foreground"
-            >
-              {error}
-            </p>
-          )}
-          <Button
-            type="submit"
-            disabled={busy}
-            className="h-12 w-fit rounded-xl px-6 font-extrabold"
-          >
-            {busy ? "Ajout…" : "Ajouter la gare"}
-          </Button>
-        </form>
-      )}
-    </section>
-  );
-}
-
-function Field({ label, id, children }: { label: string; id: string; children: ReactNode }) {
-  return (
-    <div className="flex flex-col gap-2">
-      <label htmlFor={id} className="text-sm font-semibold text-muted-foreground">
-        {label}
-      </label>
-      {children}
-    </div>
   );
 }
