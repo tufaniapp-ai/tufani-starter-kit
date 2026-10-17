@@ -34,6 +34,7 @@ import {
   type PendingSale,
 } from "@/lib/offline-queue";
 import { cn } from "@/lib/utils";
+import { SeatPicker } from "@/components/SeatPicker";
 import { TicketQr } from "@/components/TicketQr";
 import { sendTicketSms, signTickets } from "@/lib/tickets.functions";
 
@@ -654,7 +655,12 @@ function SaleForm({
       </div>
 
       {showMap && (
-        <SeatPicker departure={departure} free={free} chosen={seats ?? []} onToggle={toggleSeat} />
+        <SeatPicker
+          model={departure.model}
+          free={free}
+          chosen={seats ?? []}
+          onToggle={toggleSeat}
+        />
       )}
 
       <div className="flex flex-col gap-2">
@@ -705,52 +711,6 @@ function SaleForm({
           : `${payment === "especes" ? "Encaisser" : "Valider"} ${formatFcfa(total, "F")}`}
       </Button>
     </form>
-  );
-}
-
-function SeatPicker({
-  departure,
-  free,
-  chosen,
-  onToggle,
-}: {
-  departure: GuichetDeparture;
-  free: Set<number>;
-  chosen: number[];
-  onToggle: (n: number) => void;
-}) {
-  return (
-    <div
-      className="mx-auto grid w-fit gap-1.5 rounded-2xl bg-secondary p-3"
-      style={{ gridTemplateColumns: `repeat(${departure.model.pattern.length}, 2.5rem)` }}
-    >
-      {seatMap(departure.model)
-        .flat()
-        .map((c, i) =>
-          c.kind === "aisle" ? (
-            <span key={i} />
-          ) : (
-            <button
-              key={i}
-              type="button"
-              disabled={!free.has(c.number) && !chosen.includes(c.number)}
-              onClick={() => onToggle(c.number)}
-              aria-label={`Siège ${c.number}${c.window ? ", fenêtre" : ""}${free.has(c.number) ? "" : ", occupé"}`}
-              aria-pressed={chosen.includes(c.number)}
-              className={cn(
-                "h-9 rounded-md text-xs font-bold",
-                chosen.includes(c.number)
-                  ? "bg-primary text-primary-foreground"
-                  : free.has(c.number)
-                    ? "border-2 border-input bg-card"
-                    : "bg-muted-foreground/25 text-muted-foreground line-through",
-              )}
-            >
-              {c.number}
-            </button>
-          ),
-        )}
-    </div>
   );
 }
 
@@ -847,7 +807,7 @@ function Manifest({
   const city = (p: number) => departure.stops.find((s) => s.position === p)?.city ?? "?";
   const here = departure.stops.find((s) => s.stationId === stationId)?.position;
   const list = departure.tickets
-    .filter((t) => t.status !== "annule")
+    .filter((t) => t.status !== "annule" && t.status !== "reserve")
     .sort((a, b) => a.seat - b.seat);
   const boarding = list.filter((t) => t.from === here).length;
   const leaving = list.filter((t) => t.to === here).length;

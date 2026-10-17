@@ -48,16 +48,19 @@ const STATION_KEY = "tufani.controle.gare";
 type Shown = { decision: ScanDecision; at: string; offline: boolean };
 
 function toManifest(d: GuichetDeparture): ManifestTicket[] {
-  return d.tickets.map((t) => ({
-    id: t.id,
-    code: t.code,
-    seat: t.seat,
-    name: t.name,
-    from: t.from,
-    to: t.to,
-    status: t.status === "annule" ? "annule" : t.boardedAt ? "embarque" : "valide",
-    boardedAt: t.boardedAt,
-  }));
+  // Un siège tenu pendant un paiement en ligne n'est pas encore un billet.
+  return d.tickets
+    .filter((t) => t.status !== "reserve")
+    .map((t) => ({
+      id: t.id,
+      code: t.code,
+      seat: t.seat,
+      name: t.name,
+      from: t.from,
+      to: t.to,
+      status: t.status === "annule" ? "annule" : t.boardedAt ? "embarque" : "valide",
+      boardedAt: t.boardedAt,
+    }));
 }
 
 const hhmm = (iso: string) =>

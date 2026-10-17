@@ -14,6 +14,8 @@ import { Route as ConnexionRouteImport } from './routes/connexion'
 import { Route as ControleRouteImport } from './routes/controle'
 import { Route as GuichetRouteImport } from './routes/guichet'
 import { Route as ProRouteImport } from './routes/pro'
+import { Route as TrajetsRouteImport } from './routes/trajets'
+import { Route as CommandeOrderIdRouteImport } from './routes/commande.$orderId'
 import { Route as ProIndexRouteImport } from './routes/pro.index'
 import { Route as ProAnnulationRouteImport } from './routes/pro.annulation'
 import { Route as ProBusRouteImport } from './routes/pro.bus'
@@ -22,6 +24,7 @@ import { Route as ProGaresRouteImport } from './routes/pro.gares'
 import { Route as ProHorairesRouteImport } from './routes/pro.horaires'
 import { Route as ProLignesRouteImport } from './routes/pro.lignes'
 import { Route as ProVersementsRouteImport } from './routes/pro.versements'
+import { Route as ReserverDepartureIdRouteImport } from './routes/reserver.$departureId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -46,6 +49,16 @@ const GuichetRoute = GuichetRouteImport.update({
 const ProRoute = ProRouteImport.update({
   id: '/pro',
   path: '/pro',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TrajetsRoute = TrajetsRouteImport.update({
+  id: '/trajets',
+  path: '/trajets',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CommandeOrderIdRoute = CommandeOrderIdRouteImport.update({
+  id: '/commande/$orderId',
+  path: '/commande/$orderId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProIndexRoute = ProIndexRouteImport.update({
@@ -88,6 +101,11 @@ const ProVersementsRoute = ProVersementsRouteImport.update({
   path: '/versements',
   getParentRoute: () => ProRoute,
 } as any)
+const ReserverDepartureIdRoute = ReserverDepartureIdRouteImport.update({
+  id: '/reserver/$departureId',
+  path: '/reserver/$departureId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -95,6 +113,8 @@ export interface FileRoutesByFullPath {
   '/controle': typeof ControleRoute
   '/guichet': typeof GuichetRoute
   '/pro': typeof ProRouteWithChildren
+  '/trajets': typeof TrajetsRoute
+  '/commande/$orderId': typeof CommandeOrderIdRoute
   '/pro/annulation': typeof ProAnnulationRoute
   '/pro/bus': typeof ProBusRoute
   '/pro/equipe': typeof ProEquipeRoute
@@ -102,6 +122,7 @@ export interface FileRoutesByFullPath {
   '/pro/horaires': typeof ProHorairesRoute
   '/pro/lignes': typeof ProLignesRoute
   '/pro/versements': typeof ProVersementsRoute
+  '/reserver/$departureId': typeof ReserverDepartureIdRoute
   '/pro/': typeof ProIndexRoute
 }
 export interface FileRoutesByTo {
@@ -109,6 +130,8 @@ export interface FileRoutesByTo {
   '/connexion': typeof ConnexionRoute
   '/controle': typeof ControleRoute
   '/guichet': typeof GuichetRoute
+  '/trajets': typeof TrajetsRoute
+  '/commande/$orderId': typeof CommandeOrderIdRoute
   '/pro/annulation': typeof ProAnnulationRoute
   '/pro/bus': typeof ProBusRoute
   '/pro/equipe': typeof ProEquipeRoute
@@ -116,6 +139,7 @@ export interface FileRoutesByTo {
   '/pro/horaires': typeof ProHorairesRoute
   '/pro/lignes': typeof ProLignesRoute
   '/pro/versements': typeof ProVersementsRoute
+  '/reserver/$departureId': typeof ReserverDepartureIdRoute
   '/pro': typeof ProIndexRoute
 }
 export interface FileRoutesById {
@@ -125,6 +149,8 @@ export interface FileRoutesById {
   '/controle': typeof ControleRoute
   '/guichet': typeof GuichetRoute
   '/pro': typeof ProRouteWithChildren
+  '/trajets': typeof TrajetsRoute
+  '/commande/$orderId': typeof CommandeOrderIdRoute
   '/pro/annulation': typeof ProAnnulationRoute
   '/pro/bus': typeof ProBusRoute
   '/pro/equipe': typeof ProEquipeRoute
@@ -132,6 +158,7 @@ export interface FileRoutesById {
   '/pro/horaires': typeof ProHorairesRoute
   '/pro/lignes': typeof ProLignesRoute
   '/pro/versements': typeof ProVersementsRoute
+  '/reserver/$departureId': typeof ReserverDepartureIdRoute
   '/pro/': typeof ProIndexRoute
 }
 export interface FileRouteTypes {
@@ -142,6 +169,8 @@ export interface FileRouteTypes {
     | '/controle'
     | '/guichet'
     | '/pro'
+    | '/trajets'
+    | '/commande/$orderId'
     | '/pro/annulation'
     | '/pro/bus'
     | '/pro/equipe'
@@ -149,6 +178,7 @@ export interface FileRouteTypes {
     | '/pro/horaires'
     | '/pro/lignes'
     | '/pro/versements'
+    | '/reserver/$departureId'
     | '/pro/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -156,6 +186,8 @@ export interface FileRouteTypes {
     | '/connexion'
     | '/controle'
     | '/guichet'
+    | '/trajets'
+    | '/commande/$orderId'
     | '/pro/annulation'
     | '/pro/bus'
     | '/pro/equipe'
@@ -163,6 +195,7 @@ export interface FileRouteTypes {
     | '/pro/horaires'
     | '/pro/lignes'
     | '/pro/versements'
+    | '/reserver/$departureId'
     | '/pro'
   id:
     | '__root__'
@@ -171,6 +204,8 @@ export interface FileRouteTypes {
     | '/controle'
     | '/guichet'
     | '/pro'
+    | '/trajets'
+    | '/commande/$orderId'
     | '/pro/annulation'
     | '/pro/bus'
     | '/pro/equipe'
@@ -178,6 +213,7 @@ export interface FileRouteTypes {
     | '/pro/horaires'
     | '/pro/lignes'
     | '/pro/versements'
+    | '/reserver/$departureId'
     | '/pro/'
   fileRoutesById: FileRoutesById
 }
@@ -187,6 +223,9 @@ export interface RootRouteChildren {
   ControleRoute: typeof ControleRoute
   GuichetRoute: typeof GuichetRoute
   ProRoute: typeof ProRouteWithChildren
+  TrajetsRoute: typeof TrajetsRoute
+  CommandeOrderIdRoute: typeof CommandeOrderIdRoute
+  ReserverDepartureIdRoute: typeof ReserverDepartureIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -224,6 +263,20 @@ declare module '@tanstack/react-router' {
       path: '/pro'
       fullPath: '/pro'
       preLoaderRoute: typeof ProRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/trajets': {
+      id: '/trajets'
+      path: '/trajets'
+      fullPath: '/trajets'
+      preLoaderRoute: typeof TrajetsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/commande/$orderId': {
+      id: '/commande/$orderId'
+      path: '/commande/$orderId'
+      fullPath: '/commande/$orderId'
+      preLoaderRoute: typeof CommandeOrderIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pro/': {
@@ -282,6 +335,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProVersementsRouteImport
       parentRoute: typeof ProRoute
     }
+    '/reserver/$departureId': {
+      id: '/reserver/$departureId'
+      path: '/reserver/$departureId'
+      fullPath: '/reserver/$departureId'
+      preLoaderRoute: typeof ReserverDepartureIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -315,6 +375,9 @@ const rootRouteChildren: RootRouteChildren = {
   ControleRoute: ControleRoute,
   GuichetRoute: GuichetRoute,
   ProRoute: ProRouteWithChildren,
+  TrajetsRoute: TrajetsRoute,
+  CommandeOrderIdRoute: CommandeOrderIdRoute,
+  ReserverDepartureIdRoute: ReserverDepartureIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

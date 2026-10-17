@@ -20,7 +20,8 @@ describe("simulateur de paiement", () => {
       failureReason: "solde_insuffisant",
     });
     expect((await p.verify(wait.providerRef)).status).toBe("en_attente");
-    expect(wait.redirectUrl).toBeDefined();
+    // Une autre instance du serveur retrouve le même résultat.
+    expect((await new SimulatedPaymentProvider().verify(ok.providerRef)).status).toBe("payee");
   });
 
   it("ne crée pas deux paiements pour la même commande", async () => {

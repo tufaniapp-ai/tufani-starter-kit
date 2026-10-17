@@ -1,4 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+
+import { PublicShell } from "@/components/PublicShell";
+import { SearchForm } from "@/components/SearchForm";
+import { maliTime } from "@/domain/booking";
+import { dayLabel } from "@/domain/guichet";
+import { readMyOrders, type SavedOrder } from "@/lib/my-orders";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -20,31 +27,66 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
-  return (
-    <main className="flex min-h-screen flex-col bg-background">
-      <header className="flex items-center gap-3 px-5 py-5 sm:px-10">
-        <span
-          aria-hidden="true"
-          className="flex size-10 items-center justify-center rounded-xl bg-primary text-xl font-extrabold text-highlight"
-        >
-          T
-        </span>
-        <span className="text-xl font-extrabold tracking-tight text-foreground">Tufani</span>
-      </header>
+  const [mine, setMine] = useState<SavedOrder[]>([]);
+  useEffect(() => {
+    setMine(readMyOrders().filter((o) => Date.parse(o.leavesAt) > Date.now() - 6 * 3600000));
+  }, []);
 
-      <section className="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center gap-6 px-5 pb-16 sm:px-10">
+  return (
+    <PublicShell>
+      <div className="flex flex-col gap-3 pt-4">
         <p className="text-sm font-bold text-primary">Billets de bus au Mali</p>
-        <h1 className="text-4xl leading-tight font-extrabold tracking-tight text-foreground sm:text-6xl">
+        <h1 className="text-3xl leading-tight font-extrabold tracking-tight text-foreground sm:text-5xl">
           Votre billet de bus en une minute, sans faire la queue.
         </h1>
-        <p className="max-w-xl text-lg leading-relaxed text-muted-foreground">
-          Toutes les compagnies au même endroit, paiement par Orange Money, Wave ou Moov Money, et
-          billet par SMS valable sans connexion.
+        <p className="text-base leading-relaxed text-muted-foreground sm:text-lg">
+          Choisissez votre siège, payez par Orange Money, Wave ou Moov Money, et recevez votre
+          billet par SMS.
         </p>
-        <p className="w-fit rounded-full bg-accent px-4 py-2 text-sm font-bold text-accent-foreground">
-          Lancement prochainement
-        </p>
-      </section>
-    </main>
+      </div>
+
+      <SearchForm />
+
+      {mine.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <h2 className="text-lg font-extrabold">Mes billets</h2>
+          {mine.map((o) => (
+            <Link
+              key={o.id}
+              to="/commande/$orderId"
+              params={{ orderId: o.id }}
+              search={{ k: o.key }}
+              className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3 no-underline hover:border-primary"
+            >
+              <span className="font-bold text-foreground">{o.label}</span>
+              <span className="text-sm text-muted-foreground">
+                {dayLabel(o.leavesAt.slice(0, 10))} · {maliTime(o.leavesAt)}
+              </span>
+            </Link>
+          ))}
+        </div>
+      )}
+
+      <ul className="grid gap-3 text-sm sm:grid-cols-3">
+        <li className="rounded-xl bg-secondary px-4 py-3">
+          <strong className="block text-foreground">Toutes les compagnies</strong>
+          <span className="text-muted-foreground">
+            Heures, prix et places restantes côte à côte.
+          </span>
+        </li>
+        <li className="rounded-xl bg-secondary px-4 py-3">
+          <strong className="block text-foreground">Votre siège à vous</strong>
+          <span className="text-muted-foreground">
+            Choisi sur le plan du bus, garanti à l'embarquement.
+          </span>
+        </li>
+        <li className="rounded-xl bg-secondary px-4 py-3">
+          <strong className="block text-foreground">Billet sans connexion</strong>
+          <span className="text-muted-foreground">
+            Le code du SMS suffit pour monter dans le bus.
+          </span>
+        </li>
+      </ul>
+    </PublicShell>
   );
 }

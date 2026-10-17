@@ -21,7 +21,7 @@ export function destinations(stops: RouteStop[], from: number, sellSegments: boo
   return from === 0 ? after.filter((s) => s.position === last) : [];
 }
 
-export type SoldTicket = SeatBooking & { status: "valide" | "embarque" | "annule" };
+export type SoldTicket = SeatBooking & { status: "reserve" | "valide" | "embarque" | "annule" };
 
 /** Les billets annulés libèrent leur siège. */
 export function activeBookings(tickets: SoldTicket[]): SeatBooking[] {

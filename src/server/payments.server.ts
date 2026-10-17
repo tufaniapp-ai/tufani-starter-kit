@@ -57,18 +57,24 @@ export class SimulatedPaymentProvider implements PaymentProvider {
     const existing = [...this.payments.entries()].find(([, p]) => p.orderRef === input.orderRef);
     if (existing) return { providerRef: existing[0], status: "en_attente" };
 
-    const providerRef = `SIM-${input.orderRef}`;
-    const last = input.amount % 10;
-    const status: PaymentStatus = last === 1 ? "echouee" : last === 2 ? "en_attente" : "payee";
-    this.payments.set(providerRef, { orderRef: input.orderRef, amount: input.amount, status });
-    const redirects = input.method === "wave" || input.method === "carte";
-    return redirects
-      ? { providerRef, status: "en_attente", redirectUrl: `/simulateur/paiement/${providerRef}` }
-      : { providerRef, status: "en_attente" };
+    // La référence porte le montant : la vérification marche même sur une autre instance du serveur.
+    const providerRef = `SIM-${input.orderRef}-${input.amount}`;
+    this.payments.set(providerRef, {
+      orderRef: input.orderRef,
+      amount: input.amount,
+      status: simulatedStatus(input.amount),
+    });
+    // Le vrai Wave renvoie un lien de paiement ; le simulateur valide directement.
+    return { providerRef, status: "en_attente" };
   }
 
   async verify(providerRef: string): Promise<VerifyResult> {
-    const p = this.payments.get(providerRef);
+    const amount = Number(/^SIM-.+-(\d+)$/.exec(providerRef)?.[1] ?? NaN);
+    const p =
+      this.payments.get(providerRef) ??
+      (Number.isInteger(amount) && amount > 0
+        ? { orderRef: "", amount, status: simulatedStatus(amount) }
+        : null);
     if (!p) return { providerRef, status: "echouee", amount: 0, failureReason: "autre" };
     return p.status === "echouee"
       ? { providerRef, status: p.status, amount: p.amount, failureReason: "solde_insuffisant" }
@@ -81,6 +87,12 @@ export class SimulatedPaymentProvider implements PaymentProvider {
     p.status = "remboursee";
     return { status: "remboursee" as const };
   }
+}
+
+/** Montant finissant par 1 → refusé (solde insuffisant), par 2 → reste en attente, sinon payé. */
+function simulatedStatus(amount: number): PaymentStatus {
+  const last = amount % 10;
+  return last === 1 ? "echouee" : last === 2 ? "en_attente" : "payee";
 }
 
 let provider: PaymentProvider | null = null;
