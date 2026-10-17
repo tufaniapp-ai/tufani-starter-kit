@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNo
 import { Field, Notice, PageTitle, inputClass } from "@/components/pro/ui";
 import { Button } from "@/components/ui/button";
 import { formatLocalPhone } from "@/domain/phone";
+import { can } from "@/domain/roles";
 import { nextSlug, slugify } from "@/domain/slug";
 import { supabase } from "@/integrations/supabase/client";
 import { db, type Membership } from "@/lib/db";
@@ -192,15 +193,19 @@ function ProLayout() {
               className="flex w-full gap-1 overflow-x-auto border-b px-3 py-2 md:w-60 md:flex-col md:overflow-visible md:border-r md:border-b-0 md:px-4 md:py-6"
             >
               <NavItem to="/pro" exact label="Tableau de bord" />
-              {STEPS.map((s, i) => (
-                <NavItem
-                  key={s.key}
-                  to={s.to}
-                  label={s.label}
-                  number={i + 1}
-                  done={stepDone(s.key, status)}
-                />
-              ))}
+              {can(context.membership.roles, "vendre_au_guichet") && (
+                <NavItem to="/guichet" label="Guichet" />
+              )}
+              {can(context.membership.roles, "configurer_compagnie") &&
+                STEPS.map((s, i) => (
+                  <NavItem
+                    key={s.key}
+                    to={s.to}
+                    label={s.label}
+                    number={i + 1}
+                    done={stepDone(s.key, status)}
+                  />
+                ))}
             </nav>
             <section className="flex min-w-0 flex-1 flex-col gap-6 px-5 py-8 sm:px-8 lg:max-w-4xl">
               <Outlet />

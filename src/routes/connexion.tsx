@@ -21,8 +21,8 @@ export const Route = createFileRoute("/connexion")({
     ],
   }),
   // « suite » : page où revenir après la connexion. Seules les pages internes connues sont acceptées.
-  validateSearch: (search: Record<string, unknown>): { suite?: "/pro" } =>
-    search["suite"] === "/pro" ? { suite: "/pro" } : {},
+  validateSearch: (search: Record<string, unknown>): { suite?: "/pro" | "/guichet" } =>
+    search["suite"] === "/pro" || search["suite"] === "/guichet" ? { suite: search["suite"] } : {},
   component: Connexion,
 });
 

@@ -2,7 +2,7 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 
 import { Card } from "@/components/pro/ui";
 import { Button } from "@/components/ui/button";
-import { ROLE_LABELS } from "@/domain/roles";
+import { ROLE_LABELS, can } from "@/domain/roles";
 import type { CompanyStatus } from "@/lib/db";
 import { STEPS, stepDone, usePro, type SetupStatus, type StepKey } from "@/lib/pro-context";
 import { cn } from "@/lib/utils";
@@ -92,52 +92,66 @@ function Dashboard() {
         )}
       </div>
 
-      <Card
-        title="Mise en route"
-        aside={
-          <span className="text-sm text-muted-foreground">
-            {doneCount} étape(s) sur {STEPS.length}
-          </span>
-        }
-      >
-        <ol className="flex flex-col">
-          {STEPS.map((s, i) => {
-            const done = stepDone(s.key, status);
-            return (
-              <li key={s.key} className="flex items-center gap-3 border-t py-3 first:border-t-0">
-                <span
-                  aria-hidden="true"
-                  className={cn(
-                    "flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-extrabold",
-                    done
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-secondary text-muted-foreground",
-                  )}
-                >
-                  {done ? "✓" : i + 1}
-                </span>
-                <div className="flex min-w-0 flex-1 flex-col">
-                  <span className="font-bold">{s.label}</span>
-                  <span className="text-xs text-muted-foreground">{detail(s.key, status)}</span>
-                </div>
-                <Link to={s.to} className="py-2 text-sm font-bold text-primary">
-                  {done ? "Modifier" : "Ouvrir"}
-                </Link>
-              </li>
-            );
-          })}
-        </ol>
-        {next ? (
-          <Button asChild className="h-12 w-fit rounded-xl px-6 font-extrabold">
-            <Link to={next.to}>Continuer : {next.label.toLowerCase()}</Link>
-          </Button>
-        ) : (
-          <p className="rounded-xl bg-accent px-4 py-3 text-sm font-bold text-accent-foreground">
-            Mise en route terminée. La vente au guichet arrive dans la prochaine étape du
-            développement.
+      {can(roles, "vendre_au_guichet") && (
+        <Card title="Vente au guichet">
+          <p className="text-sm text-muted-foreground">
+            Vendez les départs du jour, imprimez les billets et suivez votre caisse. Le guichet
+            continue de vendre si le réseau coupe.
           </p>
-        )}
-      </Card>
+          <Button asChild className="h-12 w-fit rounded-xl px-6 font-extrabold">
+            <Link to="/guichet">Ouvrir le guichet</Link>
+          </Button>
+        </Card>
+      )}
+
+      {can(roles, "configurer_compagnie") && (
+        <Card
+          title="Mise en route"
+          aside={
+            <span className="text-sm text-muted-foreground">
+              {doneCount} étape(s) sur {STEPS.length}
+            </span>
+          }
+        >
+          <ol className="flex flex-col">
+            {STEPS.map((s, i) => {
+              const done = stepDone(s.key, status);
+              return (
+                <li key={s.key} className="flex items-center gap-3 border-t py-3 first:border-t-0">
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      "flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-extrabold",
+                      done
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-muted-foreground",
+                    )}
+                  >
+                    {done ? "✓" : i + 1}
+                  </span>
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <span className="font-bold">{s.label}</span>
+                    <span className="text-xs text-muted-foreground">{detail(s.key, status)}</span>
+                  </div>
+                  <Link to={s.to} className="py-2 text-sm font-bold text-primary">
+                    {done ? "Modifier" : "Ouvrir"}
+                  </Link>
+                </li>
+              );
+            })}
+          </ol>
+          {next ? (
+            <Button asChild className="h-12 w-fit rounded-xl px-6 font-extrabold">
+              <Link to={next.to}>Continuer : {next.label.toLowerCase()}</Link>
+            </Button>
+          ) : (
+            <p className="rounded-xl bg-accent px-4 py-3 text-sm font-bold text-accent-foreground">
+              Mise en route terminée. La vente au guichet arrive dans la prochaine étape du
+              développement.
+            </p>
+          )}
+        </Card>
+      )}
     </>
   );
 }
