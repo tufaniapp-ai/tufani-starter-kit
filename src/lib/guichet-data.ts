@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { db } from "@/lib/db";
 
 export const SELLER_ROLES: MemberRole[] = ["gerant", "chef_de_gare", "agent"];
+export const SCANNER_ROLES: MemberRole[] = ["gerant", "chef_de_gare", "controleur"];
 
 export type StaffMembership = {
   id: string;
@@ -31,6 +32,8 @@ export type GuichetDeparture = {
   model: BusModel & { capacity: number };
   fares: { from: number; to: number; price: number }[];
   tickets: (SoldTicket & {
+    id: string;
+    boardedAt: string | null;
     name: string;
     code: string;
     payment: string;
@@ -38,7 +41,7 @@ export type GuichetDeparture = {
   })[];
 };
 
-export async function loadStaff(): Promise<{
+export async function loadStaff(roles: MemberRole[] = SELLER_ROLES): Promise<{
   userId: string;
   phone: string | null;
   memberships: StaffMembership[];
@@ -55,7 +58,7 @@ export async function loadStaff(): Promise<{
     .eq("active", true);
   if (membersError) throw membersError;
   const memberships = ((data ?? []) as unknown as StaffMembership[]).filter((m) =>
-    m.roles.some((r) => SELLER_ROLES.includes(r)),
+    m.roles.some((r) => roles.includes(r)),
   );
   return {
     userId: auth.user.id,
@@ -99,6 +102,8 @@ type DepartureRow = {
 };
 
 type TicketRow = {
+  id: string;
+  boarded_at: string | null;
   departure_id: string;
   seat: number;
   from_pos: number;
@@ -138,7 +143,7 @@ export async function loadDepartures(
     const t = await db
       .from("tickets")
       .select(
-        "departure_id, seat, from_pos, to_pos, status, passenger_name, code, payment_method, station_id",
+        "id, boarded_at, departure_id, seat, from_pos, to_pos, status, passenger_name, code, payment_method, station_id",
       )
       .in("departure_id", ids);
     if (t.error) throw t.error;
@@ -169,6 +174,8 @@ export async function loadDepartures(
     tickets: tickets
       .filter((t) => t.departure_id === r.id)
       .map((t) => ({
+        id: t.id,
+        boardedAt: t.boarded_at,
         seat: t.seat,
         from: t.from_pos,
         to: t.to_pos,

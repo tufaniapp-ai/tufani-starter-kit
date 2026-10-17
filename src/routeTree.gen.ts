@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ConnexionRouteImport } from './routes/connexion'
+import { Route as ControleRouteImport } from './routes/controle'
 import { Route as GuichetRouteImport } from './routes/guichet'
 import { Route as ProRouteImport } from './routes/pro'
 import { Route as ProIndexRouteImport } from './routes/pro.index'
@@ -30,6 +31,11 @@ const IndexRoute = IndexRouteImport.update({
 const ConnexionRoute = ConnexionRouteImport.update({
   id: '/connexion',
   path: '/connexion',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ControleRoute = ControleRouteImport.update({
+  id: '/controle',
+  path: '/controle',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GuichetRoute = GuichetRouteImport.update({
@@ -86,6 +92,7 @@ const ProVersementsRoute = ProVersementsRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/connexion': typeof ConnexionRoute
+  '/controle': typeof ControleRoute
   '/guichet': typeof GuichetRoute
   '/pro': typeof ProRouteWithChildren
   '/pro/annulation': typeof ProAnnulationRoute
@@ -100,6 +107,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/connexion': typeof ConnexionRoute
+  '/controle': typeof ControleRoute
   '/guichet': typeof GuichetRoute
   '/pro/annulation': typeof ProAnnulationRoute
   '/pro/bus': typeof ProBusRoute
@@ -114,6 +122,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/connexion': typeof ConnexionRoute
+  '/controle': typeof ControleRoute
   '/guichet': typeof GuichetRoute
   '/pro': typeof ProRouteWithChildren
   '/pro/annulation': typeof ProAnnulationRoute
@@ -130,6 +139,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/connexion'
+    | '/controle'
     | '/guichet'
     | '/pro'
     | '/pro/annulation'
@@ -144,6 +154,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/connexion'
+    | '/controle'
     | '/guichet'
     | '/pro/annulation'
     | '/pro/bus'
@@ -157,6 +168,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/connexion'
+    | '/controle'
     | '/guichet'
     | '/pro'
     | '/pro/annulation'
@@ -172,6 +184,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ConnexionRoute: typeof ConnexionRoute
+  ControleRoute: typeof ControleRoute
   GuichetRoute: typeof GuichetRoute
   ProRoute: typeof ProRouteWithChildren
 }
@@ -190,6 +203,13 @@ declare module '@tanstack/react-router' {
       path: '/connexion'
       fullPath: '/connexion'
       preLoaderRoute: typeof ConnexionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/controle': {
+      id: '/controle'
+      path: '/controle'
+      fullPath: '/controle'
+      preLoaderRoute: typeof ControleRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/guichet': {
@@ -292,6 +312,7 @@ const ProRouteWithChildren = ProRoute._addFileChildren(ProRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ConnexionRoute: ConnexionRoute,
+  ControleRoute: ControleRoute,
   GuichetRoute: GuichetRoute,
   ProRoute: ProRouteWithChildren,
 }

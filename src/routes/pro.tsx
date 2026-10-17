@@ -196,6 +196,9 @@ function ProLayout() {
               {can(context.membership.roles, "vendre_au_guichet") && (
                 <NavItem to="/guichet" label="Guichet" />
               )}
+              {can(context.membership.roles, "scanner_billets") && (
+                <NavItem to="/controle" label="Embarquement" />
+              )}
               {can(context.membership.roles, "configurer_compagnie") &&
                 STEPS.map((s, i) => (
                   <NavItem

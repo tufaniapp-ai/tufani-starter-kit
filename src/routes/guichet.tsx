@@ -34,6 +34,8 @@ import {
   type PendingSale,
 } from "@/lib/offline-queue";
 import { cn } from "@/lib/utils";
+import { TicketQr } from "@/components/TicketQr";
+import { sendTicketSms, signTickets } from "@/lib/tickets.functions";
 
 export const Route = createFileRoute("/guichet")({
   head: () => ({
@@ -51,7 +53,7 @@ const PAYMENTS = [
 ] as const;
 type Payment = (typeof PAYMENTS)[number]["key"];
 
-type SoldResult = { code: string | null; seat: number; price: number; name: string };
+type SoldResult = { id?: string; code: string | null; seat: number; price: number; name: string };
 type Receipt = {
   departure: GuichetDeparture;
   from: number;
@@ -544,7 +546,15 @@ function SaleForm({
         });
         return;
       }
-      const sold = (data ?? []) as { code: string; seat: number; price: number; name: string }[];
+      const sold = (data ?? []) as {
+        id: string;
+        code: string;
+        seat: number;
+        price: number;
+        name: string;
+      }[];
+      if (normalized)
+        void sendTicketSms({ data: { ticketIds: sold.map((t) => t.id) } }).catch(() => undefined);
       await onSold({ departure, from, to, payment, pending: false, tickets: sold });
     } catch (err) {
       if (isNetworkError(err)) {
@@ -759,6 +769,17 @@ function ReceiptView({
   const fromStop = departure.stops.find((s) => s.position === from);
   const toStop = departure.stops.find((s) => s.position === to);
   const at = addMinutes(departure.departure_time, fromStop?.minutes ?? 0);
+  const [qrs, setQrs] = useState<Record<string, string>>({});
+  const ids = receipt.tickets.flatMap((t) => (t.id ? [t.id] : []));
+  const idsKey = ids.join(",");
+
+  useEffect(() => {
+    if (!idsKey) return;
+    void signTickets({ data: { ticketIds: idsKey.split(",") } })
+      .then((r) => setQrs(Object.fromEntries(r.tickets.map((t) => [t.id, t.qr]))))
+      .catch(() => setQrs({}));
+  }, [idsKey]);
+
   return (
     <div className="flex flex-col gap-4">
       {receipt.pending ? (
@@ -791,6 +812,9 @@ function ReceiptView({
             <span className="text-base font-extrabold tracking-widest">
               {t.code ?? "Code en attente de réseau"}
             </span>
+            {t.id && qrs[t.id] && (
+              <TicketQr value={qrs[t.id] ?? ""} label={`QR code du billet ${t.code ?? ""}`} />
+            )}
           </article>
         ))}
       </div>
