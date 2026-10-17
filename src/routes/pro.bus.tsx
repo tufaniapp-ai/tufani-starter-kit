@@ -172,6 +172,12 @@ function AddModel({
         setError(dbMessage(insertError, "Le modèle n'a pas pu être ajouté."));
         return;
       }
+      const next = BUS_MODELS.find(
+        (m) =>
+          m.id !== chosen.id &&
+          !existing.some((e) => e.seat_rows === m.rows && e.pattern === toPattern(m)),
+      );
+      setPreset(next?.id ?? "");
       await onAdded();
     } finally {
       setBusy(false);

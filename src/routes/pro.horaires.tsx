@@ -131,6 +131,7 @@ function Horaires() {
       {route && (
         <>
           <ScheduleCard
+            key={`horaires-${route.id}`}
             companyId={companyId}
             route={route}
             models={models}
@@ -139,6 +140,7 @@ function Horaires() {
             onChange={reload}
           />
           <FaresCard
+            key={`prix-${route.id}`}
             route={route}
             fares={fares.filter((f) => f.route_id === route.id)}
             canEdit={canEdit}

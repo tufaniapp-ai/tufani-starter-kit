@@ -31,7 +31,12 @@ function ProLayout() {
   const [status, setStatus] = useState<SetupStatus | null>(null);
 
   const loadMemberships = useCallback(async () => {
-    const { data: auth } = await supabase.auth.getUser();
+    const { data: auth, error: authError } = await supabase.auth.getUser();
+    // Sans réseau, getUser échoue : on ne confond pas « hors ligne » avec « déconnecté ».
+    if (authError && authError.name !== "AuthSessionMissingError") {
+      setLoad({ state: "error" });
+      return;
+    }
     if (!auth.user) {
       setLoad({ state: "anonymous" });
       return;
@@ -156,7 +161,20 @@ function ProLayout() {
 
       {load.state === "error" && (
         <Centered>
-          <Notice>Impossible de charger votre espace. Réessayez dans un instant.</Notice>
+          <Notice>
+            Impossible de charger votre espace. Vérifiez votre connexion internet, puis réessayez.
+          </Notice>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              setLoad({ state: "loading" });
+              void loadMemberships();
+            }}
+            className="h-12 w-fit rounded-xl px-6 font-bold"
+          >
+            Réessayer
+          </Button>
         </Centered>
       )}
 
